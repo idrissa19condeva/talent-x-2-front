@@ -1,0 +1,14 @@
+appId: ${APP_ID}
+# Assumes the previous sign-in flow left the app authenticated.
+---
+- launchApp
+- tapOn:
+    id: "go-to-profile"
+- assertVisible:
+    id: "profile-email"
+- tapOn:
+    id: "sign-out-button"
+- tapOn: "Sign out"
+- assertVisible:
+    id: "welcome-title"
+    timeout: 15000

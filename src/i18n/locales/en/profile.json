@@ -1,0 +1,14 @@
+{
+  "home_title": "You're in.",
+  "home_subtitle": "This is your first authenticated screen.",
+  "go_to_profile": "View profile",
+  "profile_title": "Profile",
+  "signed_in_as": "Signed in as",
+  "email_label": "Email",
+  "joined_label": "Member since",
+  "language_setting": "App language",
+  "sign_out": "Sign out",
+  "confirm_sign_out": "Sign out of TalentX?",
+  "confirm_sign_out_cta": "Sign out",
+  "keep_session": "Stay signed in"
+}

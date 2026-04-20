@@ -1,0 +1,9 @@
+appId: ${APP_ID}
+# From a fresh install, a direct deep-link into /(app) must bounce to auth.
+---
+- launchApp:
+    clearState: true
+- openLink: "talentx:///(app)/profile"
+- assertVisible:
+    id: "welcome-title"
+    timeout: 10000

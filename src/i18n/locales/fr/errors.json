@@ -1,0 +1,15 @@
+{
+  "email_required": "L'email est requis",
+  "email_invalid": "Entrez un email valide",
+  "password_required": "Le mot de passe est requis",
+  "password_too_short": "Le mot de passe doit contenir au moins 8 caractères",
+  "password_needs_variety": "Le mot de passe doit contenir des lettres et des chiffres",
+  "first_name_required": "Le prénom est requis",
+  "code_required": "Entrez le code de vérification",
+  "generic": "Une erreur est survenue. Veuillez réessayer.",
+  "invalid_credentials": "Email ou mot de passe invalide.",
+  "account_exists": "Un compte avec cet email existe déjà.",
+  "network": "Erreur réseau. Vérifiez votre connexion.",
+  "social_cancelled": "La connexion a été annulée.",
+  "social_failed": "Impossible de se connecter avec ce fournisseur."
+}

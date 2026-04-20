@@ -1,0 +1,12 @@
+appId: ${APP_ID}
+# Static UI assertions — does not complete OAuth (provider sandboxes needed).
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "cta-have-account"
+- assertVisible:
+    id: "sign-in-social-google"
+- assertVisible:
+    id: "sign-in-social-facebook"
+# Apple button: visibility is platform-dependent; asserted in 08-ios-only.

@@ -1,0 +1,31 @@
+appId: ${APP_ID}
+# Requires Clerk Dashboard "Test mode" with a known verification code OR a
+# real inbox. Set VERIFICATION_CODE via env. See README > E2E.
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "cta-get-started"
+- assertVisible: "Create your account"
+- tapOn:
+    id: "sign-up-first-name"
+- inputText: "E2E"
+- tapOn:
+    id: "sign-up-email"
+- inputText: ${TEST_EMAIL}
+- tapOn:
+    id: "sign-up-password"
+- inputText: ${TEST_PASSWORD}
+- tapOn:
+    id: "sign-up-submit"
+- assertVisible:
+    id: "sign-up-code"
+    timeout: 10000
+- tapOn:
+    id: "sign-up-code"
+- inputText: ${VERIFICATION_CODE}
+- tapOn:
+    id: "sign-up-verify-submit"
+- assertVisible:
+    id: "home-subtitle"
+    timeout: 15000
