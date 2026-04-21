@@ -43,7 +43,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-secure-store',
     'expo-localization',
     'expo-apple-authentication',
-    'expo-web-browser',
     // To enable Sentry source map uploads, add the plugin once you have
     // SENTRY_ORG + SENTRY_PROJECT:
     //   ['@sentry/react-native/expo', { organization: 'YOUR_ORG', project: 'YOUR_PROJECT' }]
