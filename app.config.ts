@@ -10,11 +10,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: SCHEME,
   version: '0.1.0',
   orientation: 'portrait',
-  icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   splash: {
-    image: './assets/splash.png',
     resizeMode: 'contain',
     backgroundColor: '#0B0B10',
   },
@@ -29,14 +27,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#0B0B10',
     },
     package: BUNDLE_ID,
   },
   web: {
     bundler: 'metro',
-    favicon: './assets/icon.png',
   },
   plugins: [
     'expo-router',
