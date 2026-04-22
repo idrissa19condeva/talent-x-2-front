@@ -45,4 +45,4 @@ function RootLayout() {
   );
 }
 
-export default Sentry.wrap(RootLayout);
+export default env.sentryDsn ? Sentry.wrap(RootLayout) : RootLayout;

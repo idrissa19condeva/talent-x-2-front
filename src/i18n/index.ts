@@ -33,7 +33,7 @@ export async function initI18n() {
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
     returnNull: false,
-    compatibilityJSON: 'v4',
+    compatibilityJSON: 'v3',
   });
 }
 
