@@ -34,7 +34,15 @@ function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ClerkProvider publishableKey={env.clerkPublishableKey} tokenCache={tokenCache}>
+        <ClerkProvider
+          publishableKey={env.clerkPublishableKey}
+          tokenCache={tokenCache}
+          taskUrls={{
+            'choose-organization': '/(auth)/tasks/choose-organization',
+            'reset-password': '/(auth)/tasks/reset-password',
+            'setup-mfa': '/(auth)/tasks/setup-mfa',
+          }}
+        >
           <ClerkLoaded>
             <StatusBar style="auto" />
             <Slot />
