@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link, useRouter } from 'expo-router';
+import { Link, Redirect, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSignIn } from '@clerk/clerk-expo';
+import { useAuth, useSignIn } from '@clerk/clerk-expo';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AuthHeader } from '@/components/AuthHeader';
@@ -10,12 +10,13 @@ import { Button } from '@/components/Button';
 import { Divider } from '@/components/Divider';
 import { SocialAuthRow } from '@/features/auth/SocialAuthRow';
 import { buildAuthSchemas } from '@/features/auth/validators';
-import { formatClerkError } from '@/utils/errors';
+import { formatClerkError, isSessionExistsError } from '@/utils/errors';
 import { colors, spacing, typography } from '@/theme';
 
 export default function SignIn() {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const { signIn, setActive, isLoaded } = useSignIn();
+  const { isSignedIn } = useAuth();
   const router = useRouter();
   const schemas = buildAuthSchemas(t);
 
@@ -25,6 +26,8 @@ export default function SignIn() {
   const [passwordError, setPasswordError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  if (isSignedIn) return <Redirect href="/(app)" />;
 
   async function onSubmit() {
     if (!isLoaded) return;
@@ -53,6 +56,10 @@ export default function SignIn() {
         setFormError(t('errors:generic'));
       }
     } catch (err) {
+      if (isSessionExistsError(err)) {
+        router.replace('/(app)');
+        return;
+      }
       setFormError(formatClerkError(err, t));
     } finally {
       setLoading(false);

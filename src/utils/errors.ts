@@ -21,3 +21,12 @@ export function formatClerkError(err: unknown, t: TFunction<'errors'>): string {
   if (e?.message) return e.message;
   return t('generic');
 }
+
+/** True when Clerk refuses a sign-in/up because a session is already active. */
+export function isSessionExistsError(err: unknown): boolean {
+  const e = err as ClerkLikeError;
+  const first = e?.errors?.[0];
+  if (first?.code === 'session_exists') return true;
+  const msg = (first?.longMessage ?? first?.message ?? e?.message ?? '').toLowerCase();
+  return msg.includes("you're already signed in") || msg.includes('already signed in');
+}
