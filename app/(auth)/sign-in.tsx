@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Redirect, useRouter } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth, useSignIn } from '@clerk/clerk-expo';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,6 @@ export default function SignIn() {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const { signIn, setActive, isLoaded } = useSignIn();
   const { isSignedIn } = useAuth();
-  const router = useRouter();
   const schemas = buildAuthSchemas(t);
 
   const [email, setEmail] = useState('');
@@ -27,7 +26,7 @@ export default function SignIn() {
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (isSignedIn) return <Redirect href="/(app)" />;
+  if (isSignedIn) return <Redirect href="/" />;
 
   async function onSubmit() {
     if (!isLoaded) return;
@@ -51,13 +50,14 @@ export default function SignIn() {
       });
       if (attempt.status === 'complete') {
         await setActive({ session: attempt.createdSessionId });
-        router.replace('/(app)');
+        // Navigation is handled by the (auth) layout guard once Clerk
+        // state flips to isSignedIn=true on the next render.
       } else {
         setFormError(t('errors:generic'));
       }
     } catch (err) {
       if (isSessionExistsError(err)) {
-        router.replace('/(app)');
+        // Same: state will flip, guard will redirect.
         return;
       }
       setFormError(formatClerkError(err, t));

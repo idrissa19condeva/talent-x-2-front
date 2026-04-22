@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Redirect, useRouter } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth, useSignUp } from '@clerk/clerk-expo';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,6 @@ export default function SignUp() {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const { signUp, setActive, isLoaded } = useSignUp();
   const { isSignedIn } = useAuth();
-  const router = useRouter();
   const schemas = buildAuthSchemas(t);
 
   const [firstName, setFirstName] = useState('');
@@ -32,7 +31,7 @@ export default function SignUp() {
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | undefined>();
 
-  if (isSignedIn) return <Redirect href="/(app)" />;
+  if (isSignedIn) return <Redirect href="/" />;
 
   async function onSubmit() {
     if (!isLoaded) return;
@@ -60,7 +59,7 @@ export default function SignUp() {
       setPendingVerification(true);
     } catch (err) {
       if (isSessionExistsError(err)) {
-        router.replace('/(app)');
+        // (auth) layout guard will redirect once isSignedIn flips.
         return;
       }
       setFormError(formatClerkError(err, t));
@@ -82,7 +81,7 @@ export default function SignUp() {
       const attempt = await signUp.attemptEmailAddressVerification({ code: parsed.data.code });
       if (attempt.status === 'complete') {
         await setActive({ session: attempt.createdSessionId });
-        router.replace('/(app)');
+        // (auth) layout guard redirects to "/" once isSignedIn flips.
       } else {
         setFormError(t('errors:generic'));
       }
