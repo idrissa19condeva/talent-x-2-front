@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Redirect } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAuth, useSignIn } from '@clerk/clerk-expo';
+import { useAuth, useClerk, useSignIn } from '@clerk/clerk-expo';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AuthHeader } from '@/components/AuthHeader';
@@ -17,6 +17,7 @@ export default function SignIn() {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const { signIn, setActive, isLoaded } = useSignIn();
   const { isSignedIn } = useAuth();
+  const clerk = useClerk();
   const schemas = buildAuthSchemas(t);
 
   const [email, setEmail] = useState('');
@@ -45,25 +46,36 @@ export default function SignIn() {
     setLoading(true);
     try {
       console.log('[SignIn] calling signIn.create');
-      const attempt = await signIn.create({
-        identifier: parsed.data.email,
-        password: parsed.data.password,
-      });
-      console.log('[SignIn] attempt.status =', attempt.status, 'sessionId=', attempt.createdSessionId);
-      if (attempt.status === 'complete') {
-        await setActive({ session: attempt.createdSessionId });
-        console.log('[SignIn] setActive done — waiting for layout guard to redirect');
-      } else {
-        setFormError(t('errors:generic'));
-      }
+      await attemptSignIn(parsed.data.email, parsed.data.password);
     } catch (err) {
       console.log('[SignIn] error', JSON.stringify(err, null, 2));
       if (isSessionExistsError(err)) {
+        // Stale session in the Clerk SDK that useAuth does not see.
+        // Sign out at the SDK level then retry once.
+        try {
+          console.log('[SignIn] stale session — forcing clerk.signOut and retrying');
+          await clerk.signOut();
+          await attemptSignIn(parsed.data.email, parsed.data.password);
+        } catch (retryErr) {
+          console.log('[SignIn] retry error', JSON.stringify(retryErr, null, 2));
+          setFormError(formatClerkError(retryErr, t));
+        }
         return;
       }
       setFormError(formatClerkError(err, t));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function attemptSignIn(identifier: string, password: string) {
+    const attempt = await signIn!.create({ identifier, password });
+    console.log('[SignIn] attempt.status =', attempt.status, 'sessionId=', attempt.createdSessionId);
+    if (attempt.status === 'complete') {
+      await setActive!({ session: attempt.createdSessionId });
+      console.log('[SignIn] setActive done — waiting for layout guard to redirect');
+    } else {
+      setFormError(t('errors:generic'));
     }
   }
 

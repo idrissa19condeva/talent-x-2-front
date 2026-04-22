@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Redirect } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAuth, useSignUp } from '@clerk/clerk-expo';
+import { useAuth, useClerk, useSignUp } from '@clerk/clerk-expo';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AuthHeader } from '@/components/AuthHeader';
@@ -17,6 +17,7 @@ export default function SignUp() {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const { signUp, setActive, isLoaded } = useSignUp();
   const { isSignedIn } = useAuth();
+  const clerk = useClerk();
   const schemas = buildAuthSchemas(t);
 
   const [firstName, setFirstName] = useState('');
@@ -59,7 +60,14 @@ export default function SignUp() {
       setPendingVerification(true);
     } catch (err) {
       if (isSessionExistsError(err)) {
-        // (auth) layout guard will redirect once isSignedIn flips.
+        // Stale Clerk SDK session that useAuth does not see.
+        // Clear it so the user can restart a clean sign-up.
+        try {
+          await clerk.signOut();
+          setFormError(t('errors:generic'));
+        } catch {
+          // Swallow.
+        }
         return;
       }
       setFormError(formatClerkError(err, t));
