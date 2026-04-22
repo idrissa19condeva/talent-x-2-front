@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import { useEffect, useState } from 'react';
 import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
+import { tokenCache } from '@clerk/clerk-expo/token-cache';
 import { Slot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -8,7 +9,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { env } from '@/config/env';
 import { initSentry, Sentry } from '@/config/sentry';
-import { tokenCache } from '@/config/clerk-token-cache';
 import { initI18n } from '@/i18n';
 
 initSentry();

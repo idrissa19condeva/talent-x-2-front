@@ -44,20 +44,21 @@ export default function SignIn() {
 
     setLoading(true);
     try {
+      console.log('[SignIn] calling signIn.create');
       const attempt = await signIn.create({
         identifier: parsed.data.email,
         password: parsed.data.password,
       });
+      console.log('[SignIn] attempt.status =', attempt.status, 'sessionId=', attempt.createdSessionId);
       if (attempt.status === 'complete') {
         await setActive({ session: attempt.createdSessionId });
-        // Navigation is handled by the (auth) layout guard once Clerk
-        // state flips to isSignedIn=true on the next render.
+        console.log('[SignIn] setActive done — waiting for layout guard to redirect');
       } else {
         setFormError(t('errors:generic'));
       }
     } catch (err) {
+      console.log('[SignIn] error', JSON.stringify(err, null, 2));
       if (isSessionExistsError(err)) {
-        // Same: state will flip, guard will redirect.
         return;
       }
       setFormError(formatClerkError(err, t));
