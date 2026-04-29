@@ -150,6 +150,7 @@ export default function VerifyEmail() {
         <OtpField
           value={code}
           onChange={(v) => {
+            console.log('[VerifyEmail] onChange v=', JSON.stringify(v));
             setCode(v);
             if (error) setError(null);
           }}

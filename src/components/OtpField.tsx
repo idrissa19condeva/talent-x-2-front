@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, radius, spacing, typography } from '@/theme';
 
 const LENGTH = 6;
@@ -10,60 +10,64 @@ interface Props {
   onComplete?: (full: string) => void;
   error?: string;
   testID?: string;
+  /** Currently ignored in the diagnostic build — user taps the field. */
   autoFocus?: boolean;
 }
 
 /**
- * Numeric OTP input rendered as a single, visible TextInput. Letter-spacing
- * gives the digits the spaced-out feel of a multi-cell OTP, while keeping the
- * keystroke handling totally standard — no overlay tricks, no per-cell
- * focus management.
+ * DIAGNOSTIC BUILD.
+ *
+ * Stripped to the bare minimum on purpose. Mirrors the exact shape of the
+ * working TextField on sign-in:
+ *   - Plain wrapper View
+ *   - One TextInput inside a styled wrapper View
+ *   - No autoFocus, no inputMode, no autoComplete, no letterSpacing,
+ *     no textContentType, no importantForAutofill, no maxLength.
+ *
+ * We log at three points so Metro tells us exactly where the chain breaks:
+ *   1. Render — the value prop we receive each time
+ *   2. onChangeText — the raw text the native input emits
+ *   3. After regex strip — what we hand back to the parent
  */
-export function OtpField({ value, onChange, onComplete, error, testID, autoFocus }: Props) {
-  const ref = useRef<TextInput>(null);
+export function OtpField({ value, onChange, onComplete, error, testID }: Props) {
   const [focused, setFocused] = useState(false);
 
-  useEffect(() => {
-    if (autoFocus) {
-      const t = setTimeout(() => ref.current?.focus(), 50);
-      return () => clearTimeout(t);
-    }
-  }, [autoFocus]);
-
-  const handleChange = (raw: string) => {
-    const digits = raw.replace(/\D+/g, '').slice(0, LENGTH);
-    onChange(digits);
-    if (digits.length === LENGTH) onComplete?.(digits);
-  };
+  console.log('[OtpField] render value=', JSON.stringify(value));
 
   return (
     <View style={styles.wrapper}>
+      <Text style={[typography.label, styles.label]}>Code</Text>
       <View
         style={[
-          styles.box,
-          focused ? styles.boxFocused : null,
-          !!error ? styles.boxError : null,
+          styles.inputWrap,
+          focused && styles.inputWrapFocused,
+          !!error && styles.inputWrapError,
         ]}
       >
         <TextInput
-          ref={ref}
           value={value}
-          onChangeText={handleChange}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onChangeText={(raw) => {
+            console.log('[OtpField] onChangeText raw=', JSON.stringify(raw));
+            const digits = raw.replace(/\D+/g, '').slice(0, LENGTH);
+            console.log('[OtpField] onChangeText digits=', JSON.stringify(digits));
+            onChange(digits);
+            if (digits.length === LENGTH) onComplete?.(digits);
+          }}
+          onFocus={() => {
+            console.log('[OtpField] onFocus');
+            setFocused(true);
+          }}
+          onBlur={() => {
+            console.log('[OtpField] onBlur');
+            setFocused(false);
+          }}
           keyboardType="number-pad"
-          inputMode="numeric"
-          maxLength={LENGTH}
           autoCorrect={false}
-          autoComplete="off"
-          textContentType="none"
-          importantForAutofill="no"
-          selectionColor={colors.primary}
           placeholder="000000"
           placeholderTextColor={colors.textSubtle}
           accessibilityLabel="verification code"
           testID={testID}
-          style={styles.input}
+          style={[styles.input, typography.body]}
         />
       </View>
       {error ? (
@@ -79,26 +83,20 @@ export function OtpField({ value, onChange, onComplete, error, testID, autoFocus
 }
 
 const styles = StyleSheet.create({
-  wrapper: { gap: spacing.sm },
-  box: {
-    height: 64,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
+  wrapper: { gap: spacing.xs },
+  label: { color: colors.textMuted },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    backgroundColor: colors.background,
     paddingHorizontal: spacing.md,
-    justifyContent: 'center',
+    height: 52,
   },
-  boxFocused: { borderColor: colors.primary, backgroundColor: colors.background },
-  boxError: { borderColor: colors.danger },
-  input: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: Platform.OS === 'ios' ? 12 : 8,
-    textAlign: 'center',
-    fontVariant: ['tabular-nums'],
-    paddingVertical: 0,
-  },
+  inputWrapFocused: { borderColor: colors.primary },
+  inputWrapError: { borderColor: colors.danger },
+  input: { flex: 1, color: colors.text },
   error: { color: colors.danger },
 });
