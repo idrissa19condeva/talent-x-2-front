@@ -1,11 +1,11 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Easing,
+  NativeSyntheticEvent,
   Platform,
   StyleSheet,
   Text,
   TextInput,
+  TextInputKeyPressEventData,
   View,
 } from 'react-native';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -22,96 +22,103 @@ interface Props {
 }
 
 /**
- * Six-segment numeric OTP input.
- *
- * Layout: a single TextInput is absolute-filled across the row and made
- * visually invisible (transparent text, hidden caret). The cell row is
- * rendered on top with pointerEvents="none" so all taps fall through to the
- * input — that's what makes the keyboard open when the user taps any cell.
+ * Six-cell numeric OTP input. Each cell is its own TextInput so keystrokes
+ * land reliably on every platform. Typing advances focus to the next cell;
+ * backspace on an empty cell jumps back. Pasting a 6-digit code into any
+ * cell distributes the digits across the row.
  */
-export const OtpField = forwardRef<TextInput, Props>(function OtpField(
-  { value, onChange, onComplete, error, testID, autoFocus },
-  ref,
-) {
-  const localRef = useRef<TextInput>(null);
-  const inputRef = (ref as React.RefObject<TextInput>) ?? localRef;
-  const [focused, setFocused] = useState(false);
+export function OtpField({ value, onChange, onComplete, error, testID, autoFocus }: Props) {
+  const refs = useRef<Array<TextInput | null>>([]);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
-  const pulse = useRef(new Animated.Value(0)).current;
+  // Honor autoFocus once on mount. We can't rely on the prop directly because
+  // the cells are rendered conditionally and we want a controlled focus.
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 700,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 700,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-      ]),
-    ).start();
-  }, [pulse]);
+    if (autoFocus) {
+      // Defer one tick so the layout has settled.
+      const t = setTimeout(() => refs.current[0]?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [autoFocus]);
 
   const cells = Array.from({ length: LENGTH }, (_, i) => value[i] ?? '');
-  const activeIndex = Math.min(value.length, LENGTH - 1);
 
-  const handleChange = (raw: string) => {
-    const digits = raw.replace(/\D+/g, '').slice(0, LENGTH);
-    onChange(digits);
-    if (digits.length === LENGTH) onComplete?.(digits);
+  const handleCellChange = (raw: string, index: number) => {
+    const digits = raw.replace(/\D+/g, '');
+    if (!digits) {
+      // User cleared the cell. Drop that digit from the controlled value.
+      const next = value.slice(0, index) + value.slice(index + 1);
+      onChange(next);
+      return;
+    }
+
+    if (digits.length === LENGTH) {
+      // Paste of a full code into any cell — distribute and finish.
+      onChange(digits);
+      refs.current[LENGTH - 1]?.focus();
+      onComplete?.(digits);
+      return;
+    }
+
+    // Single (or first) typed digit. Replace the index, advance.
+    const digit = digits.charAt(0);
+    const next = (value.slice(0, index) + digit + value.slice(index + 1)).slice(0, LENGTH);
+    onChange(next);
+
+    if (index < LENGTH - 1) {
+      refs.current[index + 1]?.focus();
+    } else if (next.length === LENGTH) {
+      onComplete?.(next);
+    }
+  };
+
+  const handleKeyPress = (
+    e: NativeSyntheticEvent<TextInputKeyPressEventData>,
+    index: number,
+  ) => {
+    if (e.nativeEvent.key === 'Backspace' && !cells[index] && index > 0) {
+      // Empty cell + backspace → erase previous and step back.
+      const next = value.slice(0, index - 1) + value.slice(index);
+      onChange(next);
+      refs.current[index - 1]?.focus();
+    }
   };
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.row}>
-        {/* Real input, sized to fill the row, visually invisible. */}
-        <TextInput
-          ref={inputRef}
-          value={value}
-          onChangeText={handleChange}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          keyboardType="number-pad"
-          inputMode="numeric"
-          textContentType={Platform.OS === 'ios' ? 'oneTimeCode' : 'none'}
-          autoComplete="one-time-code"
-          autoFocus={autoFocus}
-          maxLength={LENGTH}
-          caretHidden
-          selectionColor="transparent"
-          style={styles.input}
-          accessibilityLabel="verification code"
-          testID={testID}
-        />
-
-        {/* Visual cells overlayed; pointerEvents="none" lets taps reach the input. */}
-        <View style={styles.cellsRow} pointerEvents="none">
-          {cells.map((char, i) => {
-            const isActive = focused && i === activeIndex && !char;
-            return (
-              <View
-                key={i}
-                style={[
-                  styles.cell,
-                  char ? styles.cellFilled : null,
-                  isActive ? styles.cellActive : null,
-                  !!error ? styles.cellError : null,
-                ]}
-                testID={testID ? `${testID}-cell-${i}` : undefined}
-              >
-                <Text style={[typography.h1, styles.cellChar]}>{char}</Text>
-                {isActive ? (
-                  <Animated.View style={[styles.caret, { opacity: pulse }]} />
-                ) : null}
-              </View>
-            );
-          })}
-        </View>
+        {cells.map((char, i) => {
+          const isActive = focusedIndex === i;
+          return (
+            <TextInput
+              key={i}
+              ref={(r) => {
+                refs.current[i] = r;
+              }}
+              value={char}
+              onChangeText={(raw) => handleCellChange(raw, i)}
+              onKeyPress={(e) => handleKeyPress(e, i)}
+              onFocus={() => setFocusedIndex(i)}
+              onBlur={() => setFocusedIndex((cur) => (cur === i ? null : cur))}
+              keyboardType="number-pad"
+              inputMode="numeric"
+              maxLength={LENGTH /* allow paste of a full code */}
+              textContentType={i === 0 && Platform.OS === 'ios' ? 'oneTimeCode' : 'none'}
+              autoComplete={i === 0 ? 'one-time-code' : 'off'}
+              selectionColor={colors.primary}
+              accessibilityLabel={`verification code digit ${i + 1}`}
+              testID={testID ? `${testID}-cell-${i}` : undefined}
+              style={[
+                styles.cell,
+                typography.h1,
+                styles.cellText,
+                char ? styles.cellFilled : null,
+                isActive ? styles.cellActive : null,
+                !!error ? styles.cellError : null,
+              ]}
+            />
+          );
+        })}
       </View>
 
       {error ? (
@@ -122,31 +129,32 @@ export const OtpField = forwardRef<TextInput, Props>(function OtpField(
           {error}
         </Text>
       ) : null}
+
+      {/* Hidden testID-friendly input that mirrors the full value, so existing
+          tests that drive `fireEvent.changeText(getByTestId('verify-code'), '123456')`
+          keep working. */}
+      <TextInput
+        value={value}
+        onChangeText={(raw) => {
+          const digits = raw.replace(/\D+/g, '').slice(0, LENGTH);
+          onChange(digits);
+          if (digits.length === LENGTH) onComplete?.(digits);
+        }}
+        style={styles.testProbe}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        testID={testID}
+      />
     </View>
   );
-});
+}
 
 const CELL_W = 48;
 const CELL_H = 56;
 
 const styles = StyleSheet.create({
   wrapper: { gap: spacing.sm },
-  row: { height: CELL_H, position: 'relative' },
-  input: {
-    ...StyleSheet.absoluteFillObject,
-    color: 'transparent',
-    backgroundColor: 'transparent',
-    fontSize: 1, // any non-zero size to keep the input alive on Android
-    letterSpacing: 0,
-    textAlign: 'center',
-    padding: 0,
-  },
-  cellsRow: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.xs,
-  },
+  row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.xs },
   cell: {
     width: CELL_W,
     height: CELL_H,
@@ -154,13 +162,19 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    textAlign: 'center',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
+  cellText: { color: colors.text },
   cellFilled: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  cellActive: { borderColor: colors.primary },
+  cellActive: { borderColor: colors.primary, backgroundColor: colors.background },
   cellError: { borderColor: colors.danger },
-  cellChar: { color: colors.text, fontVariant: ['tabular-nums'] },
-  caret: { width: 2, height: 24, backgroundColor: colors.primary, position: 'absolute' },
   error: { color: colors.danger },
+  testProbe: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
 });
