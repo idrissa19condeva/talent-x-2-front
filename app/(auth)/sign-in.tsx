@@ -45,19 +45,13 @@ export default function SignIn() {
 
     setLoading(true);
     try {
-      console.log('[SignIn] calling signIn.create');
       await attemptSignIn(parsed.data.email, parsed.data.password);
     } catch (err) {
-      console.log('[SignIn] error', JSON.stringify(err, null, 2));
       if (isSessionExistsError(err)) {
-        // Stale session in the Clerk SDK that useAuth does not see.
-        // Sign out at the SDK level then retry once.
         try {
-          console.log('[SignIn] stale session — forcing clerk.signOut and retrying');
           await clerk.signOut();
           await attemptSignIn(parsed.data.email, parsed.data.password);
         } catch (retryErr) {
-          console.log('[SignIn] retry error', JSON.stringify(retryErr, null, 2));
           setFormError(formatClerkError(retryErr, t));
         }
         return;
@@ -70,10 +64,8 @@ export default function SignIn() {
 
   async function attemptSignIn(identifier: string, password: string) {
     const attempt = await signIn!.create({ identifier, password });
-    console.log('[SignIn] attempt.status =', attempt.status, 'sessionId=', attempt.createdSessionId);
     if (attempt.status === 'complete') {
       await setActive!({ session: attempt.createdSessionId });
-      console.log('[SignIn] setActive done — waiting for layout guard to redirect');
     } else {
       setFormError(t('errors:generic'));
     }
