@@ -1,0 +1,23 @@
+appId: ${APP_ID}
+# Sign in, close, relaunch — confirm secure-store session persists.
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "cta-have-account"
+- tapOn:
+    id: "sign-in-email"
+- inputText: ${TEST_EMAIL}
+- tapOn:
+    id: "sign-in-password"
+- inputText: ${TEST_PASSWORD}
+- tapOn:
+    id: "sign-in-submit"
+- assertVisible:
+    id: "home-subtitle"
+    timeout: 15000
+- stopApp
+- launchApp
+- assertVisible:
+    id: "home-subtitle"
+    timeout: 15000

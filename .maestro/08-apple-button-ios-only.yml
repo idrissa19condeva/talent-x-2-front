@@ -1,0 +1,19 @@
+appId: ${APP_ID}
+# Only run on iOS. On Android this flow must NOT find the Apple button.
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "cta-have-account"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertVisible:
+          id: "sign-in-social-apple"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertNotVisible:
+          id: "sign-in-social-apple"

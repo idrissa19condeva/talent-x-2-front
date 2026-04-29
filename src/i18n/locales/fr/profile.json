@@ -1,0 +1,17 @@
+{
+  "home_title": "Vous êtes connecté.",
+  "home_subtitle": "Voici votre premier écran authentifié.",
+  "go_to_profile": "Voir le profil",
+  "profile_title": "Profil",
+  "signed_in_as": "Connecté en tant que",
+  "email_label": "Email",
+  "joined_label": "Membre depuis",
+  "verification_label": "Statut de l'email",
+  "verification_verified": "Vérifié",
+  "verification_unverified": "Non vérifié",
+  "language_setting": "Langue de l'application",
+  "sign_out": "Se déconnecter",
+  "confirm_sign_out": "Se déconnecter de TalentX ?",
+  "confirm_sign_out_cta": "Se déconnecter",
+  "keep_session": "Rester connecté"
+}

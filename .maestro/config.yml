@@ -1,0 +1,9 @@
+# Shared Maestro variables.
+# Override at runtime, e.g.:
+#   maestro test .maestro/02-sign-up-email.yml -e TEST_EMAIL=someone+1@example.com
+#   maestro test .maestro/03-sign-in-email.yml -e TEST_EMAIL=... -e TEST_PASSWORD=...
+env:
+  APP_ID: com.talentx.app
+  TEST_EMAIL: e2e+user@example.com
+  TEST_PASSWORD: TestPass1!
+  VERIFICATION_CODE: "424242"

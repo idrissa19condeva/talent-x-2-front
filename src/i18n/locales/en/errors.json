@@ -1,0 +1,17 @@
+{
+  "email_required": "Email is required",
+  "email_invalid": "Enter a valid email",
+  "password_required": "Password is required",
+  "password_too_short": "Password must be at least 8 characters",
+  "password_needs_variety": "Password needs letters and numbers",
+  "first_name_required": "First name is required",
+  "code_required": "Enter the verification code",
+  "code_too_short": "Code must be 6 digits",
+  "code_invalid": "Invalid or expired code",
+  "generic": "Something went wrong. Please try again.",
+  "invalid_credentials": "Invalid email or password.",
+  "account_exists": "An account with that email already exists.",
+  "network": "Network error. Check your connection.",
+  "social_cancelled": "Sign-in was cancelled.",
+  "social_failed": "Could not sign in with that provider."
+}

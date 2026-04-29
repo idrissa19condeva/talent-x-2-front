@@ -1,0 +1,12 @@
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "welcome-title"
+- assertVisible:
+    id: "cta-get-started"
+- assertVisible:
+    id: "cta-have-account"
+- assertVisible:
+    id: "lang-picker-welcome"
