@@ -1,66 +1,118 @@
-import { Link, useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Link } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { GradientBackground } from '@/components/GradientBackground';
 import { Button } from '@/components/Button';
 import { LanguagePicker } from '@/components/LanguagePicker';
-import { ScreenContainer } from '@/components/ScreenContainer';
-import { colors, spacing, typography } from '@/theme';
+import { TrustBadge } from '@/components/TrustBadge';
+import { spacing, typography } from '@/theme';
 
 export default function Welcome() {
-  const { t } = useTranslation(['auth', 'common']);
-  const router = useRouter();
+  const { t } = useTranslation(['auth']);
+  const { height } = useWindowDimensions();
+  const isCompact = height < 700;
+
+  const fade = useRef(new Animated.Value(0)).current;
+  const lift = useRef(new Animated.Value(16)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fade, { toValue: 1, duration: 480, useNativeDriver: true, easing: Easing.out(Easing.cubic) }),
+      Animated.timing(lift, { toValue: 0, duration: 520, useNativeDriver: true, easing: Easing.out(Easing.cubic) }),
+    ]).start();
+  }, [fade, lift]);
 
   return (
-    <ScreenContainer scrollable={false}>
-      <View style={styles.topRow}>
-        <LanguagePicker testID="lang-picker-welcome" />
-      </View>
+    <GradientBackground>
+      <StatusBar style="light" />
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+        <View style={styles.topRow}>
+          <View style={styles.brandRow}>
+            <View style={styles.logoDot} />
+            <Text style={styles.eyebrow}>{t('auth:welcome_eyebrow')}</Text>
+          </View>
+          <LanguagePicker testID="lang-picker-welcome" tone="dark" />
+        </View>
 
-      <View style={styles.hero}>
-        <View style={styles.logoDot} />
-        <Text style={[typography.displayLg, styles.title]} testID="welcome-title">
-          {t('auth:welcome_title')}
-        </Text>
-        <Text style={[typography.body, styles.subtitle]}>{t('auth:welcome_subtitle')}</Text>
-      </View>
+        <Animated.View
+          style={[styles.hero, { opacity: fade, transform: [{ translateY: lift }] }]}
+        >
+          <Text style={[styles.title, isCompact && styles.titleCompact]} testID="welcome-title">
+            {t('auth:welcome_title')}
+          </Text>
+          <Text style={styles.subtitle}>{t('auth:welcome_subtitle')}</Text>
+        </Animated.View>
 
-      <View style={styles.actions}>
-        <Button
-          label={t('auth:welcome_get_started')}
-          onPress={() => router.push('/(auth)/sign-up')}
-          testID="cta-get-started"
-        />
-        <Link href="/(auth)/sign-in" asChild>
-          <Button
-            variant="ghost"
-            label={t('auth:welcome_have_account')}
-            onPress={() => router.push('/(auth)/sign-in')}
-            testID="cta-have-account"
-          />
-        </Link>
-      </View>
+        <Animated.View style={[styles.actions, { opacity: fade }]}>
+          <Link href="/(auth)/sign-up" asChild>
+            <Button
+              label={t('auth:welcome_get_started')}
+              variant="primaryOnDark"
+              testID="cta-get-started"
+            />
+          </Link>
+          <Link href="/(auth)/sign-in" asChild>
+            <Button
+              label={t('auth:welcome_have_account')}
+              variant="ghostOnDark"
+              testID="cta-have-account"
+            />
+          </Link>
 
-      <Text style={[typography.caption, styles.legal]}>
-        {t('auth:terms_prefix')} <Text style={styles.legalLink}>{t('auth:terms')}</Text>{' '}
-        {t('auth:and')} <Text style={styles.legalLink}>{t('auth:privacy')}</Text>.
-      </Text>
-    </ScreenContainer>
+          <View style={styles.trust}>
+            <TrustBadge label={t('auth:welcome_trust')} tone="light" />
+          </View>
+        </Animated.View>
+      </SafeAreaView>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: 'row', justifyContent: 'flex-end' },
-  hero: { flex: 1, justifyContent: 'center', gap: spacing.md },
-  logoDot: {
-    height: 56,
-    width: 56,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    marginBottom: spacing.lg,
+  safe: { flex: 1, paddingHorizontal: spacing.xl },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.md,
   },
-  title: { color: colors.text },
-  subtitle: { color: colors.textMuted },
-  actions: { gap: spacing.sm, marginTop: spacing.xl },
-  legal: { color: colors.textSubtle, textAlign: 'center', marginTop: spacing.lg },
-  legalLink: { color: colors.textMuted, textDecorationLine: 'underline' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  logoDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.95,
+  },
+  eyebrow: {
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    fontSize: 13,
+  },
+  hero: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  title: {
+    color: '#FFFFFF',
+    fontSize: 44,
+    lineHeight: 50,
+    fontWeight: '800',
+    letterSpacing: -1,
+  },
+  titleCompact: { fontSize: 36, lineHeight: 42 },
+  subtitle: {
+    color: 'rgba(255,255,255,0.78)',
+    ...typography.body,
+    fontSize: 17,
+    lineHeight: 24,
+    maxWidth: 360,
+  },
+  actions: { gap: spacing.sm, paddingBottom: spacing.lg },
+  trust: { alignItems: 'center', marginTop: spacing.md },
 });

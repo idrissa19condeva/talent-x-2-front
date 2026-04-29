@@ -13,6 +13,8 @@ export interface MeUser {
   imageUrl: string | null;
   createdAt: string;
   lastSeenAt: string | null;
+  emailVerifiedAt: string | null;
+  emailVerified: boolean;
 }
 
 export interface MeResponse {

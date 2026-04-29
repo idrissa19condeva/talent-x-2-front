@@ -6,11 +6,13 @@ const setActive = jest.fn();
 
 jest.mock('expo-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  Redirect: () => null,
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
 }));
 
 jest.mock('@clerk/clerk-expo', () => ({
   useAuth: () => ({ isLoaded: true, isSignedIn: false }),
+  useClerk: () => ({ signOut: jest.fn() }),
   useSignIn: () => ({
     signIn: { create: signInCreate },
     setActive,

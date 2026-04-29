@@ -1,186 +1,171 @@
-import { useState } from 'react';
-import { Link, Redirect } from 'expo-router';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link, Redirect, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { useAuth, useClerk, useSignUp } from '@clerk/clerk-expo';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '@/components/ScreenContainer';
-import { AuthHeader } from '@/components/AuthHeader';
+import { AuthCard } from '@/components/AuthCard';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { Divider } from '@/components/Divider';
+import { TrustBadge } from '@/components/TrustBadge';
 import { SocialAuthRow } from '@/features/auth/SocialAuthRow';
 import { buildAuthSchemas } from '@/features/auth/validators';
 import { formatClerkError, isSessionExistsError } from '@/utils/errors';
+import { Sentry } from '@/config/sentry';
 import { colors, spacing, typography } from '@/theme';
 
+interface FormValues {
+  firstName: string;
+  email: string;
+  password: string;
+}
+
 export default function SignUp() {
-  const { t } = useTranslation(['auth', 'common', 'errors']);
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { t } = useTranslation(['auth', 'errors']);
+  const { signUp, isLoaded } = useSignUp();
   const { isSignedIn } = useAuth();
   const clerk = useClerk();
+  const router = useRouter();
   const schemas = buildAuthSchemas(t);
 
-  const [firstName, setFirstName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ firstName?: string; email?: string; password?: string }>(
-    {},
-  );
-  const [formError, setFormError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [pendingVerification, setPendingVerification] = useState(false);
-  const [code, setCode] = useState('');
-  const [codeError, setCodeError] = useState<string | undefined>();
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schemas.signUp),
+    mode: 'onTouched',
+    defaultValues: { firstName: '', email: '', password: '' },
+  });
 
   if (isSignedIn) return <Redirect href="/" />;
 
-  async function onSubmit() {
-    if (!isLoaded) return;
-    const parsed = schemas.signUp.safeParse({ firstName, email, password });
-    setErrors({});
-    setFormError(null);
-    if (!parsed.success) {
-      const flat = parsed.error.flatten().fieldErrors;
-      setErrors({
-        firstName: flat.firstName?.[0],
-        email: flat.email?.[0],
-        password: flat.password?.[0],
-      });
-      return;
-    }
-
-    setLoading(true);
+  async function onSubmit(values: FormValues) {
+    if (!isLoaded || !signUp) return;
+    Sentry.addBreadcrumb({ category: 'auth', message: 'signup.start', level: 'info' });
     try {
       await signUp.create({
-        emailAddress: parsed.data.email,
-        password: parsed.data.password,
-        firstName: parsed.data.firstName,
+        emailAddress: values.email,
+        password: values.password,
+        firstName: values.firstName,
       });
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-      setPendingVerification(true);
+      Sentry.addBreadcrumb({ category: 'auth', message: 'signup.code_sent', level: 'info' });
+      router.replace('/(auth)/verify-email');
     } catch (err) {
       if (isSessionExistsError(err)) {
-        // Stale Clerk SDK session that useAuth does not see.
-        // Clear it so the user can restart a clean sign-up.
+        await clerk.signOut().catch(() => undefined);
         try {
-          await clerk.signOut();
-          setFormError(t('errors:generic'));
-        } catch {
-          // Swallow.
+          await signUp.create({
+            emailAddress: values.email,
+            password: values.password,
+            firstName: values.firstName,
+          });
+          await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+          router.replace('/(auth)/verify-email');
+          return;
+        } catch (retryErr) {
+          Sentry.captureException(retryErr);
+          setError('root', { message: formatClerkError(retryErr, t) });
+          return;
         }
-        return;
       }
-      setFormError(formatClerkError(err, t));
-    } finally {
-      setLoading(false);
+      Sentry.captureException(err);
+      setError('root', { message: formatClerkError(err, t) });
     }
-  }
-
-  async function onVerify() {
-    if (!isLoaded) return;
-    const parsed = schemas.verifyCode.safeParse({ code });
-    setCodeError(undefined);
-    if (!parsed.success) {
-      setCodeError(parsed.error.flatten().fieldErrors.code?.[0]);
-      return;
-    }
-    setLoading(true);
-    try {
-      const attempt = await signUp.attemptEmailAddressVerification({ code: parsed.data.code });
-      if (attempt.status === 'complete') {
-        await setActive({ session: attempt.createdSessionId });
-        // (auth) layout guard redirects to "/" once isSignedIn flips.
-      } else {
-        setFormError(t('errors:generic'));
-      }
-    } catch (err) {
-      setFormError(formatClerkError(err, t));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (pendingVerification) {
-    return (
-      <ScreenContainer>
-        <AuthHeader
-          title={t('auth:verification_title')}
-          subtitle={t('auth:verification_subtitle')}
-        />
-        <View style={styles.form}>
-          <TextField
-            label={t('auth:verification_code')}
-            keyboardType="number-pad"
-            value={code}
-            onChangeText={setCode}
-            error={codeError}
-            testID="sign-up-code"
-          />
-          {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-          <Button
-            label={t('auth:verify_cta')}
-            onPress={onVerify}
-            loading={loading}
-            testID="sign-up-verify-submit"
-          />
-        </View>
-      </ScreenContainer>
-    );
   }
 
   return (
     <ScreenContainer>
-      <AuthHeader title={t('auth:sign_up_title')} subtitle={t('auth:sign_up_subtitle')} />
+      <View style={styles.headerRow}>
+        <Link href="/(auth)/welcome" asChild>
+          <Pressable accessibilityRole="button" hitSlop={8} testID="sign-up-back">
+            <ChevronLeft color={colors.text} size={24} />
+          </Pressable>
+        </Link>
+      </View>
 
-      <View style={styles.form}>
-        <TextField
-          label={t('auth:first_name')}
-          value={firstName}
-          onChangeText={setFirstName}
-          error={errors.firstName}
-          autoComplete="given-name"
-          textContentType="givenName"
-          testID="sign-up-first-name"
-        />
-        <TextField
-          label={t('auth:email')}
-          placeholder={t('auth:email_placeholder')}
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          autoComplete="email"
-          value={email}
-          onChangeText={setEmail}
-          error={errors.email}
-          testID="sign-up-email"
-        />
-        <TextField
-          label={t('auth:password')}
-          placeholder={t('auth:password_placeholder')}
-          secure
-          textContentType="newPassword"
-          autoComplete="password-new"
-          value={password}
-          onChangeText={setPassword}
-          error={errors.password}
-          testID="sign-up-password"
+      <AuthCard testID="sign-up-card">
+        <Text style={[typography.display, styles.title]}>{t('auth:sign_up_title')}</Text>
+        <Text style={[typography.body, styles.subtitle]}>{t('auth:sign_up_subtitle')}</Text>
+
+        <Controller
+          control={control}
+          name="firstName"
+          render={({ field: { value, onChange, onBlur } }) => (
+            <TextField
+              label={t('auth:first_name')}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.firstName?.message}
+              autoComplete="given-name"
+              textContentType="givenName"
+              autoCapitalize="words"
+              testID="sign-up-first-name"
+            />
+          )}
         />
 
-        {formError ? (
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { value, onChange, onBlur } }) => (
+            <TextField
+              label={t('auth:email')}
+              placeholder={t('auth:email_placeholder')}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.email?.message}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              autoComplete="email"
+              testID="sign-up-email"
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { value, onChange, onBlur } }) => (
+            <TextField
+              label={t('auth:password')}
+              placeholder={t('auth:password_placeholder')}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.password?.message}
+              helperText={!errors.password ? t('auth:password_hint') : undefined}
+              secure
+              autoComplete="password-new"
+              textContentType="newPassword"
+              testID="sign-up-password"
+            />
+          )}
+        />
+
+        {errors.root?.message ? (
           <Text style={styles.formError} testID="sign-up-form-error">
-            {formError}
+            {errors.root.message}
           </Text>
         ) : null}
 
         <Button
           label={t('auth:sign_up_cta')}
-          onPress={onSubmit}
-          loading={loading}
+          onPress={handleSubmit(onSubmit)}
+          loading={isSubmitting}
           testID="sign-up-submit"
         />
-      </View>
 
-      <Divider label={t('auth:auth_separator')} />
-      <SocialAuthRow testIDPrefix="sign-up-social" />
+        <Divider label={t('auth:auth_separator')} />
+        <SocialAuthRow testIDPrefix="sign-up-social" />
+      </AuthCard>
 
       <View style={styles.footer}>
         <Text style={[typography.body, styles.footerText]}>{t('auth:have_account')} </Text>
@@ -190,18 +175,21 @@ export default function SignUp() {
           </Pressable>
         </Link>
       </View>
+
+      <View style={styles.trust}>
+        <TrustBadge label={t('auth:welcome_trust')} tone="muted" />
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: spacing.md },
+  headerRow: { paddingBottom: spacing.sm },
+  title: { color: colors.text },
+  subtitle: { color: colors.textMuted, marginBottom: spacing.sm },
   formError: { color: colors.danger, ...typography.caption },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: spacing.xl,
-  },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
   footerText: { color: colors.textMuted },
   footerLink: { color: colors.primary },
+  trust: { alignItems: 'center', marginTop: spacing.lg },
 });

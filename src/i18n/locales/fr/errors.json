@@ -6,6 +6,8 @@
   "password_needs_variety": "Le mot de passe doit contenir des lettres et des chiffres",
   "first_name_required": "Le prénom est requis",
   "code_required": "Entrez le code de vérification",
+  "code_too_short": "Le code doit comporter 6 chiffres",
+  "code_invalid": "Code invalide ou expiré",
   "generic": "Une erreur est survenue. Veuillez réessayer.",
   "invalid_credentials": "Email ou mot de passe invalide.",
   "account_exists": "Un compte avec cet email existe déjà.",

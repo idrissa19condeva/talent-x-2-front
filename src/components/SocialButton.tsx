@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { colors, radius, spacing, typography } from '@/theme';
+import { GoogleGlyph, FacebookGlyph, AppleGlyph } from './SocialGlyphs';
 
 export type SocialProvider = 'google' | 'facebook' | 'apple';
 
@@ -15,13 +16,20 @@ interface Props {
 
 export function SocialButton({ provider, label, onPress, loading, disabled, testID }: Props) {
   const isDisabled = disabled || loading;
-  const palette = styleMap[provider];
+  const palette = paletteMap[provider];
+
+  const handlePress = () => {
+    if (isDisabled) return;
+    Haptics.selectionAsync().catch(() => undefined);
+    onPress();
+  };
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
       accessibilityRole="button"
+      accessibilityLabel={label}
       testID={testID}
       style={({ pressed }) => [
         styles.base,
@@ -31,27 +39,20 @@ export function SocialButton({ provider, label, onPress, loading, disabled, test
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={palette.text.color as string} />
+        <ActivityIndicator color={palette.text.color} />
       ) : (
         <View style={styles.row}>
-          <FontAwesome
-            name={iconMap[provider]}
-            size={18}
-            color={palette.text.color as string}
-            style={styles.icon}
-          />
+          <View style={styles.icon}>
+            {provider === 'google' ? <GoogleGlyph size={18} /> : null}
+            {provider === 'facebook' ? <FacebookGlyph size={18} /> : null}
+            {provider === 'apple' ? <AppleGlyph size={18} color={palette.text.color} /> : null}
+          </View>
           <Text style={[typography.bodyStrong, palette.text]}>{label}</Text>
         </View>
       )}
     </Pressable>
   );
 }
-
-const iconMap: Record<SocialProvider, keyof typeof FontAwesome.glyphMap> = {
-  google: 'google',
-  facebook: 'facebook',
-  apple: 'apple',
-};
 
 const styles = StyleSheet.create({
   base: {
@@ -60,16 +61,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
   },
-  pressed: { opacity: 0.85 },
+  pressed: { opacity: 0.9, transform: [{ scale: 0.997 }] },
   disabled: { opacity: 0.5 },
   row: { flexDirection: 'row', alignItems: 'center' },
   icon: { marginRight: spacing.sm },
 });
 
-const styleMap: Record<SocialProvider, { container: object; text: { color: string } }> = {
+const paletteMap: Record<SocialProvider, { container: object; text: { color: string } }> = {
   google: {
     container: { backgroundColor: colors.background, borderColor: colors.borderStrong },
     text: { color: colors.text },

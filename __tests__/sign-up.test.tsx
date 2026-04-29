@@ -3,23 +3,23 @@ import { renderWithProviders } from './test-utils';
 
 const signUpCreate = jest.fn();
 const prepare = jest.fn();
-const attempt = jest.fn();
-const setActive = jest.fn();
+const replace = jest.fn();
 
 jest.mock('expo-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+  Redirect: () => null,
+  useRouter: () => ({ push: jest.fn(), replace, back: jest.fn() }),
 }));
 
 jest.mock('@clerk/clerk-expo', () => ({
   useAuth: () => ({ isLoaded: true, isSignedIn: false }),
+  useClerk: () => ({ signOut: jest.fn() }),
   useSignUp: () => ({
     signUp: {
       create: signUpCreate,
       prepareEmailAddressVerification: prepare,
-      attemptEmailAddressVerification: attempt,
     },
-    setActive,
+    setActive: jest.fn(),
     isLoaded: true,
   }),
   useOAuth: () => ({ startOAuthFlow: jest.fn() }),
@@ -31,11 +31,10 @@ describe('Sign-up screen', () => {
   beforeEach(() => {
     signUpCreate.mockReset();
     prepare.mockReset();
-    attempt.mockReset();
-    setActive.mockReset();
+    replace.mockReset();
   });
 
-  it('validates all fields on empty submit', async () => {
+  it('shows validation errors on empty submit', async () => {
     const { getByTestId } = renderWithProviders(<SignUp />);
     fireEvent.press(getByTestId('sign-up-submit'));
     await waitFor(() => {
@@ -43,29 +42,24 @@ describe('Sign-up screen', () => {
       expect(getByTestId('sign-up-email-error')).toBeTruthy();
       expect(getByTestId('sign-up-password-error')).toBeTruthy();
     });
+    expect(signUpCreate).not.toHaveBeenCalled();
   });
 
-  it('creates account and moves to verification', async () => {
-    signUpCreate.mockResolvedValue({});
-    prepare.mockResolvedValue({});
-
+  it('rejects a weak password', async () => {
     const { getByTestId } = renderWithProviders(<SignUp />);
     fireEvent.changeText(getByTestId('sign-up-first-name'), 'Ada');
     fireEvent.changeText(getByTestId('sign-up-email'), 'a@b.com');
-    fireEvent.changeText(getByTestId('sign-up-password'), 'abcdefg1');
+    fireEvent.changeText(getByTestId('sign-up-password'), 'short');
     fireEvent.press(getByTestId('sign-up-submit'));
-
     await waitFor(() => {
-      expect(signUpCreate).toHaveBeenCalled();
-      expect(prepare).toHaveBeenCalledWith({ strategy: 'email_code' });
-      expect(getByTestId('sign-up-code')).toBeTruthy();
+      expect(getByTestId('sign-up-password-error')).toBeTruthy();
     });
+    expect(signUpCreate).not.toHaveBeenCalled();
   });
 
-  it('verifies the code and activates the session', async () => {
+  it('starts verification and routes to verify-email on success', async () => {
     signUpCreate.mockResolvedValue({});
     prepare.mockResolvedValue({});
-    attempt.mockResolvedValue({ status: 'complete', createdSessionId: 'sess_2' });
 
     const { getByTestId } = renderWithProviders(<SignUp />);
     fireEvent.changeText(getByTestId('sign-up-first-name'), 'Ada');
@@ -73,14 +67,14 @@ describe('Sign-up screen', () => {
     fireEvent.changeText(getByTestId('sign-up-password'), 'abcdefg1');
     fireEvent.press(getByTestId('sign-up-submit'));
 
-    await waitFor(() => getByTestId('sign-up-code'));
-
-    fireEvent.changeText(getByTestId('sign-up-code'), '123456');
-    fireEvent.press(getByTestId('sign-up-verify-submit'));
-
     await waitFor(() => {
-      expect(attempt).toHaveBeenCalledWith({ code: '123456' });
-      expect(setActive).toHaveBeenCalledWith({ session: 'sess_2' });
+      expect(signUpCreate).toHaveBeenCalledWith({
+        emailAddress: 'a@b.com',
+        password: 'abcdefg1',
+        firstName: 'Ada',
+      });
+      expect(prepare).toHaveBeenCalledWith({ strategy: 'email_code' });
+      expect(replace).toHaveBeenCalledWith('/(auth)/verify-email');
     });
   });
 });

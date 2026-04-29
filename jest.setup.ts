@@ -44,3 +44,33 @@ jest.mock('@sentry/react-native', () => ({
   ReactNativeTracing: class {},
   reactNavigationIntegration: () => ({}),
 }));
+
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    LinearGradient: (props: any) => React.createElement(View, props, props.children),
+  };
+});
+
+jest.mock('lucide-react-native', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  // Every named icon resolves to a no-op view component.
+  return new Proxy(
+    {},
+    {
+      get:
+        () =>
+        (props: any) =>
+          React.createElement(View, { ...props, accessible: true }),
+    },
+  );
+});
+
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const Stub = (props: any) => React.createElement(View, props, props.children);
+  return new Proxy({ __esModule: true, default: Stub }, { get: () => Stub });
+});

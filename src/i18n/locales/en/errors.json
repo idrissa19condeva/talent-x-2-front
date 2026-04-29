@@ -6,6 +6,8 @@
   "password_needs_variety": "Password needs letters and numbers",
   "first_name_required": "First name is required",
   "code_required": "Enter the verification code",
+  "code_too_short": "Code must be 6 digits",
+  "code_invalid": "Invalid or expired code",
   "generic": "Something went wrong. Please try again.",
   "invalid_credentials": "Invalid email or password.",
   "account_exists": "An account with that email already exists.",

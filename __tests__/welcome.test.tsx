@@ -22,7 +22,7 @@ describe('Welcome screen', () => {
     expect(getByTestId('welcome-title')).toBeTruthy();
     expect(getByTestId('cta-get-started')).toBeTruthy();
     expect(getByTestId('cta-have-account')).toBeTruthy();
-    expect(getByText(/Build your talent story/i)).toBeTruthy();
+    expect(getByText(/talent story/i)).toBeTruthy();
   });
 
   it('renders language switcher', () => {
@@ -30,6 +30,11 @@ describe('Welcome screen', () => {
     expect(getByTestId('lang-picker-welcome')).toBeTruthy();
     expect(getByTestId('lang-en')).toBeTruthy();
     expect(getByTestId('lang-fr')).toBeTruthy();
+  });
+
+  it('renders trust microcopy', () => {
+    const { getByText } = renderWithProviders(<Welcome />);
+    expect(getByText(/Bank-grade security/i)).toBeTruthy();
   });
 });
 

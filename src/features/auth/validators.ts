@@ -27,7 +27,11 @@ export function buildAuthSchemas(t: TFunction<'errors'>) {
   const signUp = z.object({ email, password, firstName });
 
   const verifyCode = z.object({
-    code: z.string().trim().min(4, { message: t('code_required') }),
+    code: z
+      .string()
+      .trim()
+      .min(1, { message: t('code_required') })
+      .regex(/^\d{6}$/, { message: t('code_too_short') }),
   });
 
   const forgot = z.object({ email });

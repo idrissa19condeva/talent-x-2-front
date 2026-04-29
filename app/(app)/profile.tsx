@@ -2,6 +2,7 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useTranslation } from 'react-i18next';
+import { CheckCircle2, AlertCircle } from 'lucide-react-native';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Button } from '@/components/Button';
 import { LanguagePicker } from '@/components/LanguagePicker';
@@ -50,6 +51,25 @@ export default function Profile() {
             </Text>
           </>
         ) : null}
+
+        <Text style={[typography.caption, styles.label]}>{t('profile:verification_label')}</Text>
+        <View style={styles.verifyRow} testID="profile-verification">
+          {me?.user?.emailVerified ? (
+            <>
+              <CheckCircle2 size={16} color={colors.success} />
+              <Text style={[typography.body, { color: colors.success }]}>
+                {t('profile:verification_verified')}
+              </Text>
+            </>
+          ) : (
+            <>
+              <AlertCircle size={16} color={colors.warning} />
+              <Text style={[typography.body, { color: colors.warning }]}>
+                {t('profile:verification_unverified')}
+              </Text>
+            </>
+          )}
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -81,6 +101,7 @@ const styles = StyleSheet.create({
   label: { color: colors.textSubtle, textTransform: 'uppercase', letterSpacing: 0.4 },
   name: { color: colors.text, marginBottom: spacing.sm },
   value: { color: colors.text, marginBottom: spacing.sm },
+  verifyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   section: { marginTop: spacing.xl, gap: spacing.sm },
   sectionLabel: { color: colors.textMuted },
   footer: { marginTop: 'auto' },
