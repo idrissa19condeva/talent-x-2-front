@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   NativeSyntheticEvent,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -103,8 +102,10 @@ export function OtpField({ value, onChange, onComplete, error, testID, autoFocus
               keyboardType="number-pad"
               inputMode="numeric"
               maxLength={LENGTH /* allow paste of a full code */}
-              textContentType={i === 0 && Platform.OS === 'ios' ? 'oneTimeCode' : 'none'}
-              autoComplete={i === 0 ? 'one-time-code' : 'off'}
+              autoComplete="off"
+              autoCorrect={false}
+              textContentType="none"
+              importantForAutofill="no"
               selectionColor={colors.primary}
               accessibilityLabel={`verification code digit ${i + 1}`}
               testID={testID ? `${testID}-cell-${i}` : undefined}
