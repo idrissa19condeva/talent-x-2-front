@@ -34,13 +34,11 @@ describe('Verify email screen', () => {
     setActive.mockReset();
   });
 
-  it('renders title, subtitle with email, and OTP cells', () => {
+  it('renders title, subtitle with email, and OTP input', () => {
     const { getByText, getByTestId } = renderWithProviders(<VerifyEmail />);
     expect(getByText(/Verify your email/i)).toBeTruthy();
     expect(getByText(/a@b.com/)).toBeTruthy();
     expect(getByTestId('verify-code')).toBeTruthy();
-    expect(getByTestId('verify-code-cell-0')).toBeTruthy();
-    expect(getByTestId('verify-code-cell-5')).toBeTruthy();
   });
 
   it('rejects a short code with a translated error', async () => {
